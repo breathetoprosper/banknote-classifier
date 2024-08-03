@@ -1,0 +1,200 @@
+---------------------------------
+If you are using XAMPP
+---------------------------------
+How to upload cdv to MySql
+
+In XAMPP: start apache, mysql and tomcat then:
+XAMPP>Apache Admin>phpAdmin
+New>Create Database(Create)>Import>Check: "The first list of the file containts the table column headers">Import
+
+Click banknote_authentication>add 1 column > at the beginning of the table
+3. click the table, structure> add 1 col at the beginning of the data->go
+Name: id
+Type: int
+Length/Values: 6
+Default: None
+Index: Primary->go
+A.I.(Auto Increment)->(check)
+Save
+Close XAMPP
+
+In Python:
+
+# How to use this, where marked: 
+# 1-2: PUT THE NAME OF THE DATABASE
+# 2-2: PUT THE NAME OF THE TABLE
+# so that you can retrieve the table.
+
+import pandas as pd
+from sqlalchemy import create_engine
+
+# Database connection settings
+db_config = {
+    'host': '127.0.0.1',
+    'user': 'root',         # Your MySQL username
+    'password': '',         # Your MySQL password (empty by default in XAMPP)
+    'database': 'database_4'  # 1-2: PUT THE NAME OF THE DATABASE HERE!!!
+}
+
+def get_dataframe():
+    """
+    Connect to the MySQL database, retrieve data, and return it as a Pandas DataFrame.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the query results. Returns None if there is an error.
+    """
+    try:
+        # Create a SQLAlchemy engine: Connects to your database using connection details.
+        engine = create_engine(f"mysql+mysqlconnector://{db_config['user']}:{db_config['password']}@{db_config['host']}/{db_config['database']}")
+
+        # 2-2: PUT THE NAME OF THE TABLE HERE!!!
+        table_name = 'banknote_authentication'
+
+        # Define your SQL query. Command string to retrieve all records from a specified table.
+        query = f"SELECT * FROM {table_name};"
+
+        # Load data into a Pandas DataFrame
+        df = pd.read_sql(query, engine)
+
+        # Adjust Pandas display options
+        pd.set_option('display.max_columns', None)  # Show all columns
+        pd.set_option('display.expand_frame_repr', False)  # Prevent wrapping to multiple lines
+
+        return df
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+    
+def import_dataset():
+    df = get_dataframe()
+    if df is not None:
+        print("\nData retrieved successfully.")
+    else:
+        print("\nFailed to retrieve data.")
+
+if __name__ == "__main__":
+    # If this script is run directly, display the DataFrame
+    df = get_dataframe()
+    if df is not None:
+        print("\nData retrieved successfully.")
+        print(df)
+        print(df.info())     
+        print(df.describe(include='all'))
+    else:
+        print("\nFailed to retrieve data.")
+
+
+---------------------------------
+If you are using PgAdmin4
+---------------------------------
+For PgAdmin4
+1. create a new database: db1
+2. create a new table: banknote_authentication
+3. right click the banknote_authentication table and click query tool:
+    
+CREATE TABLE banknote_authentication (
+    variance FLOAT8,
+    skewness FLOAT8,
+    curtosis FLOAT8,
+    entropy FLOAT8,
+    class INTEGER
+);
+
+--this will create the headers
+then to see the rows comment the line aboe and do:
+SELECT * FROM banknote_authentication;
+
+In Python:
+import pandas as pd
+from sqlalchemy import create_engine
+
+# Database connection settings for PostgreSQL
+db_config = {
+    'host': 'localhost',        # PostgreSQL server address
+    'user': 'postgres',         # PostgreSQL username
+    'password': 'ADMIN',        # PostgreSQL password
+    'database': 'db2',          # 1-2: PUT THE NAME OF THE DATABASE HERE!!!
+    'port': '5432'              # PostgreSQL server port
+}
+
+def get_dataframe():
+    """
+    Connect to the PostgreSQL database, retrieve data, and return it as a Pandas DataFrame.
+
+    Returns:
+        pd.DataFrame: DataFrame containing the query results. Returns None if there is an error.
+    """
+    try:
+        # Create a SQLAlchemy engine for PostgreSQL
+        engine = create_engine(f"postgresql+psycopg2://{db_config['user']}:{db_config['password']}@{db_config['host']}:{db_config['port']}/{db_config['database']}")
+
+        # 2-2: PUT THE NAME OF THE TABLE HERE!!!
+        table_name = 'banknote_authentication'
+
+        # Define your SQL query
+        query = f"SELECT * FROM {table_name};"
+
+        # Load data into a Pandas DataFrame
+        df = pd.read_sql(query, engine)
+
+        # Adjust Pandas display options
+        pd.set_option('display.max_columns', None)  # Show all columns
+        pd.set_option('display.expand_frame_repr', False)  # Prevent wrapping to multiple lines
+
+        return df
+
+    except Exception as e:
+        print(f"Error: {e}")
+        return None
+
+if __name__ == "__main__":
+    # If this script is run directly, display the DataFrame
+    df = get_dataframe()
+    if df is not None:
+        print("\n", df)
+        print("\n", df.info())
+        print("\n", df.describe(include='all'))
+    else:
+        print("\nFailed to retrieve data.")
+
+---------------------------------------
+If you are importing directly from UCI
+---------------------------------------
+In Python copy and paste what s given to you, but then we are going to merge X and Y into a single dataframe
+
+from ucimlrepo import fetch_ucirepo
+import pandas as pd
+  
+# fetch dataset 
+banknote_authentication = fetch_ucirepo(id=267) 
+  
+# data (as pandas dataframes) 
+X = banknote_authentication.data.features 
+y = banknote_authentication.data.targets 
+  
+'''  
+# metadata 
+print(banknote_authentication.metadata) 
+  
+# variable information 
+print(banknote_authentication.variables) 
+'''
+
+# Ensure the indices of X and y match
+# This step is good practice to avoid alignment issues.
+X = X.reset_index(drop=True)
+y = y.reset_index(drop=True)
+
+# Combine features and targets into a single DataFrame
+# Rename the target column if necessary
+df = pd.concat([X, y], axis=1)
+
+print(df.head())
+
+# Rename the column 'curtosis' to 'kurtosis'
+df = df.rename(columns={'curtosis': 'kurtosis'})
+
+print("\n", df.head())
+
+---------------------------------
