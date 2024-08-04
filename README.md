@@ -34,3 +34,6 @@ A local file that explains how to:
 2.  Create a database, and a table, and then upload a dataset to PgAdmin4 and import it into Python.
 3.  Import the dataset directly into Python from UCI, but merge X and Y into a single Dataframe.
 
+# requirements.txt
+so later on you can use with docker
+
