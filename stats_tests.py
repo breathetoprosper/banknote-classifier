@@ -17,6 +17,7 @@ from sklearn.model_selection import train_test_split # this one is to split trai
 from sklearn.ensemble import RandomForestClassifier # this will be our machine learning classifier algorithm.
 from sklearn.metrics import accuracy_score, classification_report # this is for us to see the results
 from sklearn.utils import resample # this is required for balancing data, as we are going to resample.
+from sklearn.model_selection import GridSearchCV # for hyperparameter tuning
 
 COLUMNS_OF_INTEREST = ['variance', 'skewness', 'kurtosis', 'entropy'] # these are our features
 TARGET = 'class' # this is the target column.
@@ -289,31 +290,6 @@ def standardize_data(X_train, X_test=None):
     return X_train_scaled, X_test_scaled, scaler
 
 # here we perform the PCA
-def perform_pca(X_train_scaled, X_test_scaled=None, n_components=None):
-    """
-    Perform Principal Component Analysis (PCA) on the standardized data.
-    
-    Parameters:
-    - X_train_scaled: The standardized training feature matrix.
-    - X_test_scaled: The standardized test feature matrix (optional).
-    - n_components: The number of principal components to retain (optional).
-    
-    Returns:
-    - X_train_pca: The training data transformed into principal components.
-    - X_test_pca: The test data transformed into principal components (if X_test_scaled is provided).
-    - pca: The PCA object used for transformation.
-    """
-    # Initialize PCA with the specified number of components
-    pca = PCA(n_components=n_components)
-
-    # Fit PCA to the training data and transform it into principal components
-    X_train_pca = pca.fit_transform(X_train_scaled)
-
-    # Transform the test data into principal components using the same PCA
-    X_test_pca = pca.transform(X_test_scaled) if X_test_scaled is not None else None
-    
-    # return the train and test features X after pca and the pca object
-    return X_train_pca, X_test_pca, pca
 
 # here we plot the biplot.
 def plot_pca_biplot(X_pca, pca, feature_names, y_train):
@@ -348,6 +324,50 @@ def plot_pca_biplot(X_pca, pca, feature_names, y_train):
     # Scatter plot of the first two principal components
     #plt.scatter(X_pca[:, 0], X_pca[:, 1], alpha=0.7, edgecolors='k', color='#ccffff')
     plt.scatter(X_pca[:, 0], X_pca[:, 1], c=y_train, cmap=cmap, alpha=0.7, edgecolors='k')
+    """
+    Scatter plot of PCA-transformed data.
+
+    This function creates a scatter plot of the first two principal components of the data.
+
+    Parameters:
+        X_pca (ndarray): A 2D array containing the PCA-transformed data. 
+        The first principal component is in the first column, 
+        and the second principal component is in the second column.
+        y_train (array-like): An array containing the labels for each data point. 
+        These labels are used to color the points in the scatter plot.
+        cmap (str or Colormap): The colormap used to map the labels to colors. 
+        This can be a string specifying a matplotlib colormap or a Colormap instance.
+        alpha (float, optional): The alpha blending value for the points, 
+        ranging from 0 (fully transparent) to 1 (fully opaque). Default is 0.7.
+        edgecolors (str, optional): The color of the edge of each point. Default is 'k' (black).
+        
+
+    Returns:
+        A scatter plot of the first two principal components 
+        with points colored according to their labels.
+    
+    Code Explanation:
+    plt.scatter: This function from the matplotlib library creates a scatter plot.
+
+    X_pca[:, 0]: This selects all rows of the first column from the X_pca array, 
+    which represents the first principal component.
+
+    X_pca[:, 1]: This selects all rows of the second column from the X_pca array, 
+    which represents the second principal component.
+
+    c=y_train: The c parameter specifies the colors of the points. 
+    Here, it uses the y_train array, which contains the class labels for the data points. 
+    Each unique label will be represented by a different color.
+
+    cmap=cmap: This specifies the colormap to be used for mapping the labels in y_train to colors. 
+    The cmap variable should be predefined with a colormap instance or name.
+
+    alpha=0.7: The alpha parameter sets the transparency level of the points. 
+    A value of 0.7 means the points will be slightly transparent.
+
+    edgecolors='k': This sets the color of the edges of the points to black ('k').
+    """
+
     plt.xlabel('Principal Component 1')  # Label for the x-axis
     plt.ylabel('Principal Component 2')  # Label for the y-axis
     plt.title('PCA Biplot')  # Title of the plot
@@ -449,7 +469,7 @@ def plot_scree(explained_variance_ratio):
     
     plt.show()  # Display the plot
 
-def pca_analysis(X_train, X_test=None, X = None, y_train=None, n_components=0.90):
+def pca_analysis(X_train, X_test=None, X=None, y_train=None, n_components=0.90):
     """
     Perform PCA on the training and test data, determine the optimal number of components,
     and evaluate the PCA results. Additionally, generate and plot a PCA biplot.
@@ -464,19 +484,28 @@ def pca_analysis(X_train, X_test=None, X = None, y_train=None, n_components=0.90
     - X_test_pca: The test data transformed into principal components (if provided).
     - pca: The PCA object used for dimensionality reduction.
     """
+    # Convert all features to numeric types if needed
+    X_train = X_train.apply(pd.to_numeric, errors='coerce')
+    if X_test is not None:
+        X_test = X_test.apply(pd.to_numeric, errors='coerce')
+    
     # Standardize the training (and test, if provided) data
     X_train_scaled, X_test_scaled, scaler = standardize_data(X_train, X_test)
     
     # Perform initial PCA to get explained variance ratios
-    _, _, pca_full = perform_pca(X_train_scaled)
-    explained_variance_ratio = pca_full.explained_variance_ratio_
+    pca_initial = PCA()
+    X_train_pca_initial = pca_initial.fit_transform(X_train_scaled)
+    explained_variance_ratio = pca_initial.explained_variance_ratio_
     
     # Calculate cumulative explained variance to determine the number of components
     cumulative_explained_variance = np.cumsum(explained_variance_ratio)
     num_components = np.argmax(cumulative_explained_variance >= n_components) + 1
     
     # Perform PCA with determined number of components
-    X_train_pca, X_test_pca, pca = perform_pca(X_train_scaled, X_test_scaled, n_components=num_components)
+    
+    pca = PCA(n_components=num_components) # new instance of the class PCA
+    X_train_pca = pca.fit_transform(X_train_scaled)
+    X_test_pca = pca.transform(X_test_scaled) if X_test_scaled is not None else None
 
     # Print results: number of chosen components and explained variance ratios
     print(f"Number of Chosen Components: {num_components}\n")
@@ -636,6 +665,80 @@ def print_section(title, border_char='*'):
     print(f"{border_char} {title} {border_char}")
     print(f"{border}")
 
+def hyperparameter_tuning(X_train_pca, y_train, X_test_pca, y_test):        
+    """
+    Perform hyperparameter tuning for the Random Forest Classifier using GridSearchCV,
+    and evaluate the model on the test data.
+    
+    Parameters:
+    - X_train_pca: The training data transformed into principal components.
+    - y_train: The true labels for the training data.
+    - X_test_pca: The test data transformed into principal components.
+    - y_test: The true labels for the test data.
+    
+    Returns:
+    - best_model: The best model found during hyperparameter tuning.
+    """
+    # Define the parameter grid to search
+    param_grid = {
+    'n_estimators': [100],  # Start with a reasonable default
+    'max_depth': [None, 5, 10, 20],  # Allow for tree growth but limit it
+    'min_samples_split': [2, 5],  # Default value
+    'min_samples_leaf': [1, 2],  # Default value
+    'max_features': ['sqrt'],  # Common choice
+    'bootstrap': [True],  # Standard for Random Forest
+    'criterion': ['gini'],  # Gini is often a good starting point
+    'random_state': [42],  # For reproducibility
+    'class_weight': ['balanced']  # Handle imbalanced classes
+    }
+
+    # create an object(or instance, same thing) of the class RandomForestClassifier. 
+    # The RandomForestClassifier is the class constructor that has one parameter(or argument, same thing.)
+    # Initialize the Random Forest Classifier
+    rf = RandomForestClassifier(random_state=42)
+    
+    """"
+    estimator=rf: The model to use, in this case, the RandomForestClassifier instance rf.
+    param_grid=param_grid: The dictionary specifying the parameter grid to search over.
+    cv=5: The number of cross-validation folds.
+    scoring='accuracy': The metric to evaluate during the grid search.
+    n_jobs=-1: Use all available CPU cores for parallel processing.
+    verbose=2: Print detailed progress messages during the grid search.
+    """
+    # Initialize GridSearchCV with the parameter grid
+    grid_search = GridSearchCV(estimator=rf, param_grid=param_grid, 
+                               cv=5, scoring='accuracy', n_jobs=-1, verbose=2)
+    
+    # Fit GridSearchCV
+    grid_search.fit(X_train_pca, y_train)
+
+    # Get the best parameters and best score
+    best_params = grid_search.best_params_
+    best_score = grid_search.best_score_
+
+    print("Best Parameters found: ", best_params)
+    print("Best Cross-validation Score: {:.4f}".format(best_score))
+
+    # Return the best model from grid search
+    best_model = grid_search.best_estimator_
+    
+    # Save the trained model to a file
+    joblib.dump(best_model, 'random_forest_best_model.pkl')
+    
+    # Make predictions with the best model on the test set
+    y_pred = best_model.predict(X_test_pca)
+
+    # Calculate accuracy and generate classification report
+    accuracy = accuracy_score(y_test, y_pred)
+    classification = classification_report(y_test, y_pred)
+    
+    # Print the model's performance
+    print("->Chosen Model: Random Forests Model")
+    print(f"Model accuracy with Training/Test Data Split: {accuracy:.4f}")
+    print("Classification report:\n", classification)
+    
+    return best_model
+
 # here we call out the main functions
 def main():
     """
@@ -659,24 +762,44 @@ def main():
     
     # Data Transformation
     print_section("DATA TRANSFORMATION")
-    print("\n->Multicolinearity Tests: Bartlett and KMO\n")
-    multicolinearity_tests(df_tt)
     
+    # Data Balancing
     print("->Data Balancing:\n")
-    _ = class_distribution(df_tt, "original")
+    _ = class_distribution(df_tt, "Training/Test Set")
     df_balanced = balance_data(df_tt)
-    _ = class_distribution(df_balanced, "balanced")
-
+    _ = class_distribution(df_balanced, "Training/Test Set Balanced")   
     X = df_balanced[COLUMNS_OF_INTEREST]
     y = df_balanced[TARGET]
+    
+    # Multicolinearity Tests
+    print("\n->Multicolinearity Tests: Bartlett and KMO\n")
+    multicolinearity_tests(df_tt)
     
     print("->Principle Components Analysis (PCA):\n")   
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
     X_train_pca, X_test_pca, _ = pca_analysis(X_train, X_test, X, y_train)
     
+    """
+    This is a summary statistics table for both X_train_pca and X_test_pca
+    If The X_train_pca and X_test_pca summaries indicate that the PCA transformation 
+    is generally producing data with zero mean and varying standard deviations, 
+    this is typical and expected. It's the case here
+    """
+    if X_train_pca is not None:    
+        print_section("X_train_pca Variable Summary:")
+        print(pd.DataFrame(X_train_pca).describe())
+
+    if X_test_pca is not None:
+        print_section("X_test_pca Variable Summary:")
+        print(pd.DataFrame(X_test_pca).describe())
+
     # Data Modelling
-    print_section("DATA MODELLING (MODEL BUILDING)")
+    print_section("1.1 DATA MODELLING (MODEL BUILDING) WITHOUT HP Tuning.")
     _, _ = train_and_evaluate_model(X_train_pca, X_test_pca, y_train, y_test)
+
+    # Hyperparameter tuning
+    print_section("1.2 DATA MODELLING (MODEL BUILDING) WITH HP Tuning.")
+    _ = hyperparameter_tuning(X_train_pca, y_train, X_test_pca, y_test)
 
 # this if-statement allows us to run our module directly.
 # if this module is executed as the main program, 
