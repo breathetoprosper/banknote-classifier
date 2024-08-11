@@ -40,7 +40,13 @@ To clone this repository and get started with the project, follow these steps:
 
 ### Installation
 ## Setup
-text here
+#Prerequisites
+Ensure you have Python installed. It’s recommended to use a virtual environment.
+#Database Setup
+Follow the instructions in import_instructions.md to set up your database and import the dataset.
+
+###Running the Project
+1. ""Run the Application""
 
 
 
