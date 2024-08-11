@@ -19,7 +19,7 @@ The project uses the UCI Banknote Authentication dataset to build and evaluate a
 - **test_model.py**: Loads the model and makes predictions on new data.
 - **app.py**: Combines all files and streamlines the whole process. Run everything from this file.
 - **import_instructions.md**: 
-  - Instructions for creating a database and table in XAMPP and PgAdmin4, uploading a dataset, and importing it into Python.
+  - Instructions for creating a database and table in mySQL and PgAdmin4, uploading a dataset, and importing it into Python.
   - How to import the dataset directly from UCI and merge X and Y into a single DataFrame.
 - **requirements.txt**: Contains the dependencies for the project, which can be used with Docker.
 
