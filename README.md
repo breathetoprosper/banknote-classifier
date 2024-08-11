@@ -31,3 +31,16 @@ To clone this repository and get started with the project, follow these steps:
 
    ```bash
    git clone https://github.com/yourusername/banknote-classifier.git
+
+
+2. **Navigate to the Project Directory**
+
+   ```bash
+   cd banknote-classifier
+
+### Installation
+## Setup
+text here
+
+
+
